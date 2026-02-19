@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <title>Battery Deal Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Main App Container -->
+  <div id="app">
+
+    <!-- Header -->
+    <header class="app-header">
+      <h1 id="page-title">Dashboard</h1>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- VIEW: Dashboard -->
+      <section id="view-dashboard" class="view active">
+        <!-- Quick Action -->
+        <button class="btn-primary btn-large" onclick="router.navigate('new-deal')">
+          + New Deal
+        </button>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-value" id="stat-total-deals">--</span>
+            <span class="stat-label">Total Deals</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stat-total-spent">--</span>
+            <span class="stat-label">Total Spent</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value" id="stat-total-revenue">--</span>
+            <span class="stat-label">Revenue</span>
+          </div>
+          <div class="stat-card highlight">
+            <span class="stat-value" id="stat-profit">--</span>
+            <span class="stat-label">Profit</span>
+          </div>
+        </div>
+
+        <!-- Unsold Inventory Alert -->
+        <div class="alert-box" id="unsold-alert">
+          <span id="unsold-count">0</span> deals awaiting sale
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-deals">
+          <h2>Recent Deals</h2>
+          <div id="recent-deals-list"></div>
+        </div>
+      </section>
+
+      <!-- VIEW: New Deal Form -->
+      <section id="view-new-deal" class="view">
+        <form id="new-deal-form">
+
+          <div class="form-group">
+            <label for="deal-date">Date *</label>
+            <input type="date" id="deal-date" required>
+          </div>
+
+          <div class="form-group">
+            <label for="seller-name">Seller Name *</label>
+            <input type="text" id="seller-name" placeholder="John Smith" required>
+          </div>
+
+          <div class="form-group">
+            <label for="seller-contact">Contact (optional)</label>
+            <input type="text" id="seller-contact" placeholder="Phone or note">
+          </div>
+
+          <!-- Purchase Type Toggle -->
+          <div class="form-group">
+            <label>Purchase Type *</label>
+            <div class="toggle-group">
+              <button type="button" class="toggle-btn active" data-type="by_piece">
+                By Piece
+              </button>
+              <button type="button" class="toggle-btn" data-type="by_weight">
+                By Weight
+              </button>
+            </div>
+            <input type="hidden" id="purchase-type" value="by_piece">
+          </div>
+
+          <!-- Conditional: By Piece -->
+          <div class="form-group conditional" id="piece-field">
+            <label for="quantity">Number of Batteries *</label>
+            <input type="number" id="quantity" min="1" step="1" placeholder="5">
+          </div>
+
+          <!-- Conditional: By Weight -->
+          <div class="form-group conditional hidden" id="weight-field">
+            <label for="weight-lbs">Total Weight (lbs) *</label>
+            <input type="number" id="weight-lbs" min="0.01" step="0.01" placeholder="150.5">
+          </div>
+
+          <div class="form-group">
+            <label for="purchase-price">Purchase Price ($) *</label>
+            <input type="number" id="purchase-price" min="0.01" step="0.01" placeholder="50.00" required>
+          </div>
+
+          <div class="form-group">
+            <label for="sell-price">Sell Price ($) (optional)</label>
+            <input type="number" id="sell-price" min="0" step="0.01" placeholder="Leave blank if not sold yet">
+          </div>
+
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" rows="3" placeholder="Any additional details..."></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary btn-large">Log Deal</button>
+            <button type="button" class="btn-secondary" onclick="router.navigate('dashboard')">Cancel</button>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- VIEW: Deals History -->
+      <section id="view-history" class="view">
+        <!-- Search and Filters -->
+        <div class="filters-bar">
+          <input type="search" id="search-input" placeholder="Search by seller name...">
+          <select id="status-filter">
+            <option value="all">All Status</option>
+            <option value="purchased">Purchased Only</option>
+            <option value="sold">Sold Only</option>
+          </select>
+        </div>
+
+        <!-- Deals List Container -->
+        <div id="deals-list" class="deals-list">
+          <div class="loading-spinner">Loading deals...</div>
+        </div>
+      </section>
+
+      <!-- VIEW: Edit Deal -->
+      <section id="view-edit" class="view">
+        <form id="edit-deal-form">
+          <input type="hidden" id="edit-deal-id">
+
+          <div class="form-group">
+            <label for="edit-deal-date">Date *</label>
+            <input type="date" id="edit-deal-date" required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-seller-name">Seller Name *</label>
+            <input type="text" id="edit-seller-name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-seller-contact">Contact (optional)</label>
+            <input type="text" id="edit-seller-contact">
+          </div>
+
+          <!-- Purchase Type Display (read-only) -->
+          <div class="form-group">
+            <label>Purchase Type</label>
+            <input type="text" id="edit-purchase-type-display" readonly>
+            <input type="hidden" id="edit-purchase-type">
+          </div>
+
+          <!-- Conditional: By Piece -->
+          <div class="form-group conditional" id="edit-piece-field">
+            <label for="edit-quantity">Number of Batteries *</label>
+            <input type="number" id="edit-quantity" min="1" step="1">
+          </div>
+
+          <!-- Conditional: By Weight -->
+          <div class="form-group conditional hidden" id="edit-weight-field">
+            <label for="edit-weight-lbs">Total Weight (lbs) *</label>
+            <input type="number" id="edit-weight-lbs" min="0.01" step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-purchase-price">Purchase Price ($) *</label>
+            <input type="number" id="edit-purchase-price" min="0.01" step="0.01" required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-sell-price">Sell Price ($) (optional)</label>
+            <input type="number" id="edit-sell-price" min="0" step="0.01" placeholder="Leave blank if not sold yet">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-notes">Notes</label>
+            <textarea id="edit-notes" rows="3"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Changes</button>
+            <button type="button" class="btn-danger" id="delete-btn">Delete Deal</button>
+            <button type="button" class="btn-secondary" onclick="router.navigate('history')">Cancel</button>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- VIEW: Stats -->
+      <section id="view-stats" class="view">
+        <!-- Overview Stats -->
+        <div class="stats-section">
+          <h2>Overview</h2>
+          <div class="stats-list">
+            <div class="stat-row">
+              <span class="stat-row-label">Best Seller</span>
+              <span class="stat-row-value" id="stat-best-seller">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label">Average Profit per Deal</span>
+              <span class="stat-row-value" id="stat-avg-profit">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label">Total Batteries (pieces)</span>
+              <span class="stat-row-value" id="stat-total-pieces">--</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label">Total Weight (lbs)</span>
+              <span class="stat-row-value" id="stat-total-weight">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Breakdown -->
+        <div class="stats-section">
+          <h2>Monthly Breakdown</h2>
+          <div id="monthly-stats-container">
+            <table class="monthly-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Deals</th>
+                  <th class="text-right">Spent</th>
+                  <th class="text-right">Revenue</th>
+                  <th class="text-right">Profit</th>
+                </tr>
+              </thead>
+              <tbody id="monthly-stats-body">
+                <tr>
+                  <td colspan="5" class="empty-state">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-view="dashboard">
+        <span class="nav-icon">&#8962;</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-btn" data-view="new-deal">
+        <span class="nav-icon">+</span>
+        <span class="nav-label">New Deal</span>
+      </button>
+      <button class="nav-btn" data-view="history">
+        <span class="nav-icon">&#9776;</span>
+        <span class="nav-label">History</span>
+      </button>
+      <button class="nav-btn" data-view="stats">
+        <span class="nav-icon">&#9733;</span>
+        <span class="nav-label">Stats</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- Scripts loaded in order: config first, then app logic -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
