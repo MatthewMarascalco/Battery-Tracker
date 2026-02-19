@@ -91,6 +91,10 @@ body {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Needs a definite height so overflow-y actually scrolls
+     rather than expanding and hiding content under the fixed nav */
+  min-height: 0;
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
 }
 
 /* ===== Bottom Navigation ===== */
@@ -641,5 +645,6 @@ body {
     max-width: 800px;
     margin: 0 auto;
     padding: var(--space-lg);
+    padding-bottom: calc(var(--nav-height) + var(--space-lg));
   }
 }
