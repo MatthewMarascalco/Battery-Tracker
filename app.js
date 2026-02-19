@@ -37,14 +37,25 @@ const store = {
 let supabase;
 
 function initSupabase() {
+  console.log('Checking Supabase config...');
+  console.log('SUPABASE_URL:', typeof SUPABASE_URL !== 'undefined' ? 'defined' : 'undefined');
+  console.log('SUPABASE_ANON_KEY:', typeof SUPABASE_ANON_KEY !== 'undefined' ? 'defined' : 'undefined');
+
   if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
     console.error('Supabase credentials not configured. Please fill in config.js');
-    showError('Configuration error: Please set up config.js');
+    alert('Configuration error: Please check that config.js exists and contains your Supabase credentials');
     return false;
   }
 
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  return true;
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase client created');
+    return true;
+  } catch (err) {
+    console.error('Failed to create Supabase client:', err);
+    alert('Failed to connect to database: ' + err.message);
+    return false;
+  }
 }
 
 // ===== API Functions =====
@@ -208,17 +219,23 @@ const api = {
 };
 
 // ===== Router =====
-const router = {
+const router = window.router = {
   currentView: 'dashboard',
   params: {},
 
   navigate(viewId, params = {}) {
+    console.log('Navigating to:', viewId, params);
     this.currentView = viewId;
     this.params = params;
 
     // Update view visibility
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-    document.getElementById(`view-${viewId}`)?.classList.add('active');
+    const viewEl = document.getElementById(`view-${viewId}`);
+    if (viewEl) {
+      viewEl.classList.add('active');
+    } else {
+      console.error('View element not found:', `view-${viewId}`);
+    }
 
     // Update nav buttons
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -742,20 +759,35 @@ function showToast(message) {
 }
 
 function showError(message) {
+  console.error('Error:', message);
   alert(message);
 }
 
 // ===== App Initialization =====
 document.addEventListener('DOMContentLoaded', () => {
-  if (!initSupabase()) return;
+  try {
+    console.log('App initializing...');
 
-  // Initialize navigation
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      router.navigate(btn.dataset.view);
+    if (!initSupabase()) {
+      console.error('Supabase initialization failed');
+      return;
+    }
+
+    console.log('Supabase initialized successfully');
+
+    // Initialize navigation
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        console.log('Nav button clicked:', btn.dataset.view);
+        router.navigate(btn.dataset.view);
+      });
     });
-  });
 
-  // Load initial view
-  router.navigate('dashboard');
+    // Load initial view
+    console.log('Loading initial view...');
+    router.navigate('dashboard');
+  } catch (err) {
+    console.error('App initialization error:', err);
+    alert('Error starting app: ' + err.message);
+  }
 });

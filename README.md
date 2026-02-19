@@ -42,7 +42,7 @@ CREATE TABLE deals (
 );
 ```
 
-4. Go to **Project Settings > API** and copy your `Project URL` and `anon public` key
+4. Go to **Project Settings > API** and copy your `Project URL` and `anon public` key (it should look like `eyJhbGciOiJIUzI1NiIs...` - a long string starting with `eyJ`)
 5. Update `config.js` with your credentials:
 
 ```javascript
