@@ -776,14 +776,8 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     console.log('App initializing...');
 
-    if (!initSupabase()) {
-      console.error('Supabase initialization failed');
-      return;
-    }
-
-    console.log('Supabase initialized successfully');
-
-    // Initialize navigation
+    // Register all UI event listeners first, unconditionally,
+    // so navigation works even if Supabase fails to initialize.
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         console.log('Nav button clicked:', btn.dataset.view);
@@ -791,13 +785,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Dashboard "New Deal" button
     const btnNewDeal = document.getElementById('btn-new-deal');
     if (btnNewDeal) {
       btnNewDeal.addEventListener('click', () => router.navigate('new-deal'));
     }
 
-    // Cancel buttons
     const btnCancelNew = document.getElementById('btn-cancel-new');
     if (btnCancelNew) {
       btnCancelNew.addEventListener('click', () => router.navigate('dashboard'));
@@ -808,8 +800,25 @@ document.addEventListener('DOMContentLoaded', () => {
       btnCancelEdit.addEventListener('click', () => router.navigate('history'));
     }
 
-    // Load initial view
-    console.log('Loading initial view...');
+    // Now initialize Supabase. If it fails, show an error but keep the UI functional.
+    if (!initSupabase()) {
+      console.error('Supabase initialization failed — data features unavailable.');
+      document.getElementById('page-title').textContent = 'Config Error';
+      const main = document.querySelector('.main-content');
+      main.innerHTML = `
+        <div style="padding: 2rem; color: #f87171; text-align: center;">
+          <h2>Configuration Error</h2>
+          <p>Could not connect to the database.</p>
+          <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 1rem;">
+            Open your browser console (F12) for details.<br>
+            Make sure <code>config.js</code> has a valid Supabase URL and anon key (starts with <code>eyJ...</code>).
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    console.log('Supabase initialized successfully');
     router.navigate('dashboard');
   } catch (err) {
     console.error('App initialization error:', err);
