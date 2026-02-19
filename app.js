@@ -34,7 +34,7 @@ const store = {
 };
 
 // ===== Supabase Client =====
-let supabase;
+let supabaseClient;
 
 function initSupabase() {
   console.log('Checking Supabase config...');
@@ -56,7 +56,7 @@ function initSupabase() {
   }
 
   try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('Supabase client created');
     return true;
   } catch (err) {
@@ -69,7 +69,7 @@ function initSupabase() {
 // ===== API Functions =====
 const api = {
   async createDeal(dealData) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('deals')
       .insert([{
         deal_date: dealData.deal_date,
@@ -93,7 +93,7 @@ const api = {
   async getDeals(options = {}) {
     const { page = 1, pageSize = 20, search = '', status = 'all' } = options;
 
-    let query = supabase
+    let query = supabaseClient
       .from('deals')
       .select('*', { count: 'exact' })
       .order('deal_date', { ascending: false })
@@ -114,7 +114,7 @@ const api = {
   },
 
   async getDeal(id) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('deals')
       .select('*')
       .eq('id', id)
@@ -130,7 +130,7 @@ const api = {
       status: updates.sell_price ? 'sold' : 'purchased'
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('deals')
       .update(updateData)
       .eq('id', id)
@@ -142,7 +142,7 @@ const api = {
   },
 
   async deleteDeal(id) {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('deals')
       .delete()
       .eq('id', id);
@@ -152,7 +152,7 @@ const api = {
   },
 
   async getStats() {
-    const { data: allDeals, error } = await supabase
+    const { data: allDeals, error } = await supabaseClient
       .from('deals')
       .select('*');
 
@@ -174,7 +174,7 @@ const api = {
   },
 
   async getDetailedStats() {
-    const { data: deals, error } = await supabase
+    const { data: deals, error } = await supabaseClient
       .from('deals')
       .select('*');
 
