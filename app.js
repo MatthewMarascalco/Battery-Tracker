@@ -337,7 +337,7 @@ function renderRecentDeals(deals) {
     const profit = (deal.sell_price || 0) - deal.purchase_price;
 
     return `
-      <div class="deal-card ${isSold ? 'sold' : ''}" onclick="router.navigate('edit', { id: '${deal.id}' })" style="margin-bottom: var(--space-md);">
+      <div class="deal-card ${isSold ? 'sold' : ''}" data-deal-id="${escapeHtml(deal.id)}" style="margin-bottom: var(--space-md);">
         <div class="deal-header">
           <span class="deal-seller">${escapeHtml(deal.seller_name)}</span>
           <span class="deal-date">${formatDate(deal.deal_date)}</span>
@@ -355,6 +355,14 @@ function renderRecentDeals(deals) {
       </div>
     `;
   }).join('');
+
+  // Attach click handlers after rendering
+  container.querySelectorAll('.deal-card[data-deal-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const dealId = card.getAttribute('data-deal-id');
+      router.navigate('edit', { id: dealId });
+    });
+  });
 }
 
 // ===== New Deal Form =====
@@ -398,6 +406,27 @@ function initNewDealForm() {
     e.preventDefault();
 
     const purchaseType = typeInput.value;
+    const purchasePrice = parseFloat(document.getElementById('purchase-price').value);
+    const sellPriceInput = document.getElementById('sell-price').value;
+    const sellPrice = sellPriceInput ? parseFloat(sellPriceInput) : null;
+
+    // Validation: No negative prices
+    if (purchasePrice < 0) {
+      showError('Purchase price cannot be negative');
+      return;
+    }
+    if (sellPrice !== null && sellPrice < 0) {
+      showError('Sell price cannot be negative');
+      return;
+    }
+
+    // Validation: Warn if selling at a loss
+    if (sellPrice !== null && sellPrice < purchasePrice) {
+      if (!confirm('This deal will be recorded at a loss. Continue?')) {
+        return;
+      }
+    }
+
     const formData = {
       deal_date: document.getElementById('deal-date').value,
       seller_name: document.getElementById('seller-name').value.trim(),
@@ -405,8 +434,8 @@ function initNewDealForm() {
       purchase_type: purchaseType,
       quantity: purchaseType === 'by_piece' ? parseInt(document.getElementById('quantity').value) || null : null,
       weight_lbs: purchaseType === 'by_weight' ? parseFloat(document.getElementById('weight-lbs').value) || null : null,
-      purchase_price: parseFloat(document.getElementById('purchase-price').value),
-      sell_price: parseFloat(document.getElementById('sell-price').value) || null,
+      purchase_price: purchasePrice,
+      sell_price: sellPrice,
       notes: document.getElementById('notes').value.trim() || null
     };
 
@@ -531,7 +560,7 @@ function renderDealsList() {
     const isSold = deal.status === 'sold';
 
     return `
-      <div class="deal-card ${isSold ? 'sold' : ''}" onclick="router.navigate('edit', { id: '${deal.id}' })">
+      <div class="deal-card ${isSold ? 'sold' : ''}" data-deal-id="${escapeHtml(deal.id)}">
         <div class="deal-header">
           <span class="deal-seller">${escapeHtml(deal.seller_name)}</span>
           <span class="deal-date">${formatDate(deal.deal_date)}</span>
@@ -560,6 +589,14 @@ function renderDealsList() {
       </div>
     `;
   }).join('');
+
+  // Attach click handlers after rendering
+  container.querySelectorAll('.deal-card[data-deal-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const dealId = card.getAttribute('data-deal-id');
+      router.navigate('edit', { id: dealId });
+    });
+  });
 
   // Add load more button if there are more results
   if (store.pagination.hasMore) {
@@ -613,6 +650,27 @@ async function loadEditDeal(id) {
       e.preventDefault();
 
       const purchaseType = document.getElementById('edit-purchase-type').value;
+      const purchasePrice = parseFloat(document.getElementById('edit-purchase-price').value);
+      const sellPriceInput = document.getElementById('edit-sell-price').value;
+      const sellPrice = sellPriceInput ? parseFloat(sellPriceInput) : null;
+
+      // Validation: No negative prices
+      if (purchasePrice < 0) {
+        showError('Purchase price cannot be negative');
+        return;
+      }
+      if (sellPrice !== null && sellPrice < 0) {
+        showError('Sell price cannot be negative');
+        return;
+      }
+
+      // Validation: Warn if selling at a loss
+      if (sellPrice !== null && sellPrice < purchasePrice) {
+        if (!confirm('This deal will be recorded at a loss. Continue?')) {
+          return;
+        }
+      }
+
       const updates = {
         deal_date: document.getElementById('edit-deal-date').value,
         seller_name: document.getElementById('edit-seller-name').value.trim(),
@@ -620,8 +678,8 @@ async function loadEditDeal(id) {
         purchase_type: purchaseType,
         quantity: purchaseType === 'by_piece' ? parseInt(document.getElementById('edit-quantity').value) || null : null,
         weight_lbs: purchaseType === 'by_weight' ? parseFloat(document.getElementById('edit-weight-lbs').value) || null : null,
-        purchase_price: parseFloat(document.getElementById('edit-purchase-price').value),
-        sell_price: parseFloat(document.getElementById('edit-sell-price').value) || null,
+        purchase_price: purchasePrice,
+        sell_price: sellPrice,
         notes: document.getElementById('edit-notes').value.trim() || null
       };
 
@@ -761,7 +819,8 @@ function renderMonthlyStats(monthlyData) {
 // ===== Helper Functions =====
 function formatCurrency(value) {
   if (value === null || value === undefined || isNaN(value)) return '--';
-  return '$' + Math.abs(value).toFixed(2);
+  const prefix = value < 0 ? '-$' : '$';
+  return prefix + Math.abs(value).toFixed(2);
 }
 
 function formatDate(dateStr) {
