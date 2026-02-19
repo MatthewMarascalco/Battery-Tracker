@@ -1,0 +1,6 @@
+// Supabase configuration
+// 1. Copy this file to config.js
+// 2. Fill in your Supabase credentials from Project Settings > API
+
+const SUPABASE_URL = 'https://your-project.supabase.co';
+const SUPABASE_ANON_KEY = 'your-anon-key';
