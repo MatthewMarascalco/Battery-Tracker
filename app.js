@@ -223,6 +223,16 @@ const api = {
       totalWeight,
       monthlyBreakdown: monthlyData
     };
+  },
+
+  async getAllDealsForExport() {
+    const { data: deals, error } = await supabaseClient
+      .from('deals')
+      .select('*')
+      .order('deal_date', { ascending: false });
+
+    if (error) throw error;
+    return deals || [];
   }
 };
 
@@ -426,6 +436,12 @@ function loadDealsHistory() {
 
   // Initialize search/filter handlers
   initSearchAndFilter();
+
+  // Wire up export button
+  const exportBtn = document.getElementById('btn-export-deals');
+  if (exportBtn) {
+    exportBtn.onclick = exportDealsToCSV;
+  }
 
   // Load initial deals
   loadDealsList(true);
@@ -698,6 +714,12 @@ async function loadStats() {
     // Monthly breakdown
     renderMonthlyStats(stats.monthlyBreakdown);
 
+    // Wire up export button
+    const exportBtn = document.getElementById('btn-export-stats');
+    if (exportBtn) {
+      exportBtn.onclick = exportStatsToCSV;
+    }
+
   } catch (err) {
     console.error('Failed to load stats:', err);
     showError('Failed to load statistics: ' + err.message);
@@ -769,6 +791,151 @@ function showToast(message) {
 function showError(message) {
   console.error('Error:', message);
   alert(message);
+}
+
+// ===== Export Functions =====
+function escapeCsvValue(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  // Escape quotes and wrap in quotes if contains comma, newline, or quote
+  if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function downloadCsv(filename, csvContent) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+async function exportDealsToCSV() {
+  try {
+    showToast('Exporting deals...');
+    const deals = await api.getAllDealsForExport();
+
+    if (deals.length === 0) {
+      showError('No deals to export');
+      return;
+    }
+
+    // CSV Header
+    const headers = [
+      'Date',
+      'Seller Name',
+      'Contact',
+      'Purchase Type',
+      'Quantity',
+      'Weight (lbs)',
+      'Purchase Price',
+      'Sell Price',
+      'Profit',
+      'Status',
+      'Notes'
+    ];
+
+    // CSV Rows
+    const rows = deals.map(deal => {
+      const profit = deal.sell_price ? deal.sell_price - deal.purchase_price : null;
+      return [
+        deal.deal_date,
+        escapeCsvValue(deal.seller_name),
+        escapeCsvValue(deal.seller_contact),
+        deal.purchase_type === 'by_piece' ? 'By Piece' : 'By Weight',
+        deal.quantity || '',
+        deal.weight_lbs || '',
+        deal.purchase_price,
+        deal.sell_price || '',
+        profit !== null ? profit : '',
+        deal.status,
+        escapeCsvValue(deal.notes)
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const timestamp = new Date().toISOString().split('T')[0];
+    downloadCsv(`battery-deals-${timestamp}.csv`, csvContent);
+    showToast(`Exported ${deals.length} deals`);
+  } catch (err) {
+    console.error('Failed to export deals:', err);
+    showError('Failed to export deals: ' + err.message);
+  }
+}
+
+async function exportStatsToCSV() {
+  try {
+    showToast('Exporting statistics...');
+    const stats = await api.getDetailedStats();
+    const deals = await api.getAllDealsForExport();
+
+    // CSV Header
+    const headers = [
+      'Metric',
+      'Value'
+    ];
+
+    const rows = [];
+
+    // Overview stats
+    rows.push(['OVERVIEW', ''].join(','));
+    rows.push(['Best Seller', stats.bestSeller ? `${stats.bestSeller.name} ($${stats.bestSeller.total.toFixed(2)})` : '--'].join(','));
+    rows.push(['Average Profit per Deal', `$${stats.avgProfit.toFixed(2)}`].join(','));
+    rows.push(['Total Batteries (pieces)', stats.totalPieces.toString()].join(','));
+    rows.push(['Total Weight (lbs)', stats.totalWeight.toString()].join(','));
+    rows.push(['', ''].join(','));
+
+    // Monthly breakdown
+    rows.push(['MONTHLY BREAKDOWN', ''].join(','));
+    rows.push(['Month', 'Deals', 'Spent', 'Revenue', 'Profit'].join(','));
+
+    const months = Object.keys(stats.monthlyBreakdown).sort().reverse();
+    months.forEach(month => {
+      const data = stats.monthlyBreakdown[month];
+      const profit = data.revenue - data.spent;
+      const [year, monthNum] = month.split('-');
+      const monthName = new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      rows.push([monthName, data.deals, data.spent, data.revenue, profit].join(','));
+    });
+
+    rows.push(['', ''].join(','));
+
+    // All deals summary
+    rows.push(['ALL DEALS', ''].join(','));
+    rows.push(['Date', 'Seller', 'Type', 'Qty/Weight', 'Purchase Price', 'Sell Price', 'Profit', 'Status'].join(','));
+
+    deals.forEach(deal => {
+      const profit = deal.sell_price ? deal.sell_price - deal.purchase_price : null;
+      const qty = deal.purchase_type === 'by_piece'
+        ? `${deal.quantity || '-'} pcs`
+        : `${deal.weight_lbs || '-'} lbs`;
+      rows.push([
+        deal.deal_date,
+        escapeCsvValue(deal.seller_name),
+        deal.purchase_type === 'by_piece' ? 'Piece' : 'Weight',
+        qty,
+        deal.purchase_price,
+        deal.sell_price || '',
+        profit !== null ? profit : '',
+        deal.status
+      ].join(','));
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const timestamp = new Date().toISOString().split('T')[0];
+    downloadCsv(`battery-stats-${timestamp}.csv`, csvContent);
+    showToast('Statistics exported');
+  } catch (err) {
+    console.error('Failed to export stats:', err);
+    showError('Failed to export statistics: ' + err.message);
+  }
 }
 
 // ===== App Initialization =====
