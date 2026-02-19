@@ -22,7 +22,7 @@
       <!-- VIEW: Dashboard -->
       <section id="view-dashboard" class="view active">
         <!-- Quick Action -->
-        <button class="btn-primary btn-large" onclick="router.navigate('new-deal')">
+        <button class="btn-primary btn-large" id="btn-new-deal">
           + New Deal
         </button>
 
@@ -120,7 +120,7 @@
 
           <div class="form-actions">
             <button type="submit" class="btn-primary btn-large">Log Deal</button>
-            <button type="button" class="btn-secondary" onclick="router.navigate('dashboard')">Cancel</button>
+            <button type="button" class="btn-secondary" id="btn-cancel-new">Cancel</button>
           </div>
 
         </form>
@@ -201,7 +201,7 @@
           <div class="form-actions">
             <button type="submit" class="btn-primary">Save Changes</button>
             <button type="button" class="btn-danger" id="delete-btn">Delete Deal</button>
-            <button type="button" class="btn-secondary" onclick="router.navigate('history')">Cancel</button>
+            <button type="button" class="btn-secondary" id="btn-cancel-edit">Cancel</button>
           </div>
 
         </form>

@@ -40,6 +40,14 @@ function initSupabase() {
   console.log('Checking Supabase config...');
   console.log('SUPABASE_URL:', typeof SUPABASE_URL !== 'undefined' ? 'defined' : 'undefined');
   console.log('SUPABASE_ANON_KEY:', typeof SUPABASE_ANON_KEY !== 'undefined' ? 'defined' : 'undefined');
+  console.log('window.supabase:', typeof window.supabase);
+
+  // Check if Supabase library loaded
+  if (typeof window.supabase === 'undefined') {
+    console.error('Supabase library not loaded. Check the CDN script tag.');
+    alert('Error: Supabase library failed to load. Please check your internet connection.');
+    return false;
+  }
 
   if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
     console.error('Supabase credentials not configured. Please fill in config.js');
@@ -782,6 +790,23 @@ document.addEventListener('DOMContentLoaded', () => {
         router.navigate(btn.dataset.view);
       });
     });
+
+    // Dashboard "New Deal" button
+    const btnNewDeal = document.getElementById('btn-new-deal');
+    if (btnNewDeal) {
+      btnNewDeal.addEventListener('click', () => router.navigate('new-deal'));
+    }
+
+    // Cancel buttons
+    const btnCancelNew = document.getElementById('btn-cancel-new');
+    if (btnCancelNew) {
+      btnCancelNew.addEventListener('click', () => router.navigate('dashboard'));
+    }
+
+    const btnCancelEdit = document.getElementById('btn-cancel-edit');
+    if (btnCancelEdit) {
+      btnCancelEdit.addEventListener('click', () => router.navigate('history'));
+    }
 
     // Load initial view
     console.log('Loading initial view...');
